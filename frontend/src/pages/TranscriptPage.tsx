@@ -6,7 +6,7 @@ import { useTranscription } from "@/features/transcriptions/api";
 import { JobStatus } from "@/features/transcriptions/components/JobStatus";
 import { TranscriptView } from "@/features/transcriptions/components/TranscriptView";
 import { useRecentStore } from "@/features/transcriptions/store";
-import { ApiError } from "@/lib/api";
+import { ApiError, isTransient } from "@/lib/api";
 
 export default function TranscriptPage() {
   const { slug = "" } = useParams();
@@ -20,7 +20,20 @@ export default function TranscriptPage() {
 
   if (isPending) return <Skeleton className="h-64 w-full" />;
 
-  if (error) {
+  const inProgress = job && (job.status === "pending" || job.status === "processing");
+  if (error && inProgress && isTransient(error)) {
+    // The server is probably restarting (e.g. a deploy). The job is safe on disk and resumes.
+    return (
+      <div className="space-y-4">
+        <Alert intent="warning" title="Reconnecting…">
+          The server is restarting. Your file is safe and transcription will continue. This page updates by itself.
+        </Alert>
+        <JobStatus job={job} />
+      </div>
+    );
+  }
+
+  if (error && (!job || notFound)) {
     return (
       <div className="space-y-6">
         <Alert intent={notFound ? "warning" : "error"} title={error.message} />

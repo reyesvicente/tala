@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
+import { api, isTransient } from "@/lib/api";
 
 import type { NewTranscriptionValues } from "./schema";
 import type { Page, ServiceInfo, Transcription, TranscriptionSummary } from "./types";
@@ -36,10 +36,12 @@ export function useTranscription(slug: string) {
   return useQuery({
     queryKey: transcriptionKeys.detail(slug),
     queryFn: () => api.get<Transcription>(`/transcriptions/${encodeURIComponent(slug)}`),
-    // Poll while Whisper is working, stop once it's settled.
+    // Poll while Whisper is working, stop once it's settled. Keep polling (slower) through
+    // brief outages such as a deploy, so the page recovers on its own.
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "pending" || status === "processing" ? 1500 : false;
+      if (status === "pending" || status === "processing") return isTransient(query.state.error) ? 5000 : 1500;
+      return false;
     },
   });
 }
