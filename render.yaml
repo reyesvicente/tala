@@ -1,0 +1,36 @@
+# Render Blueprint: one web service (API + React frontend in one image) and Postgres.
+# Deploy: Render Dashboard → New → Blueprint → pick this repo → Apply.
+services:
+  - name: tala
+    type: web
+    runtime: docker
+    dockerfilePath: ./compose/production/Dockerfile
+    dockerContext: .
+    # Whisper `base` uses ~500 MB while transcribing; the 512 MB plans are too tight.
+    plan: 1c-2g
+    region: singapore
+    healthCheckPath: /api/health
+    # The job queue lives in-process: keep this at exactly one instance.
+    numInstances: 1
+    # The Whisper model is baked into the image (and the Hub is offline at runtime), so change
+    # the model with `ARG WHISPER_MODEL` in compose/production/Dockerfile, not an env var here.
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tala-db
+          property: connectionString
+      - key: WHISPER_BATCH_SIZE
+        value: "8"
+      - key: WHISPER_BEAM_SIZE
+        value: "1"
+      - key: MAX_UPLOAD_MB
+        value: "100"
+      - key: RETENTION_HOURS
+        value: "72"
+
+databases:
+  - name: tala-db
+    databaseName: tala
+    user: tala
+    plan: free
+    region: singapore

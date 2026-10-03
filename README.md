@@ -171,3 +171,26 @@ It needs `DATABASE_URL`, honors `PORT`, and runs migrations on start. Deployment
 - Give it at least 2 GB RAM for `base`, and 4 GB with 2+ CPUs for `small` or `large-v3-turbo`.
 - Run **one** instance only; the job queue lives inside the process.
 - Optionally mount a persistent disk at `/data` so jobs in progress survive a redeploy.
+
+### Deploy to Render
+
+`render.yaml` is a Render Blueprint: one web service (frontend + API in one image) and a Postgres
+database, in the Singapore region.
+
+1. Push this repo to GitHub.
+2. In the [Render Dashboard](https://dashboard.render.com), choose **New → Blueprint** and pick the
+   repo. Render reads `render.yaml` and shows the web service and database it will create.
+3. Click **Apply**. The first build takes several minutes because it installs the dependencies and
+   downloads the Whisper model into the image.
+4. Open the `.onrender.com` URL shown on the `tala` service. Migrations run automatically on start.
+
+Plans in the blueprint:
+
+| Resource | Plan | Why |
+|---|---|---|
+| Web service | `1c-2g` (1 CPU, 2 GB) | Whisper `base` uses ~500 MB while transcribing, so the 512 MB plans are too small. With 1 CPU, expect long files to take longer than on a laptop. |
+| Postgres | `free` | Enough for a demo. Render's free databases have limits and can expire; move to a paid plan (e.g. `0.1c-256mb`) to keep it long-term. |
+
+Check Render's pricing page for current costs, and apply any credits you have before deploying.
+To change the model, edit `ARG WHISPER_MODEL` in `compose/production/Dockerfile` (the model is
+baked into the image), and pick a bigger plan for `small` or larger.
