@@ -14,7 +14,7 @@ interface RecentState {
   remove: (slug: string) => void;
 }
 
-// No accounts: "your transcripts" is just the links this browser has made.
+// For logged-out users, "your transcripts" is just the links this browser has made.
 export const useRecentStore = create<RecentState>()(
   persist(
     (set) => ({

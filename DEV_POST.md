@@ -16,18 +16,21 @@ I couldn't name one. Every tool I knew wanted an account, a "free trial" that as
 
 So I built **Tala** (Tagalog for *note* or *record*). It does one thing:
 
-**Audio in. Text out. No account, no card, no catch.**
+**Audio in. Text out. No signup, no card, no catch.**
 
 - **Upload or record:** drag in a voice memo, meeting, or interview (mp3, m4a, aac, wav, ogg, webm, even mp4 video), or record in the browser and play it back before sending.
 - **~100 languages:** auto-detected, including Tagalog/Filipino, which matters for us. There's also a one-click **translate to English** option.
 - **Exports:** copy the text, or download plain text, **SRT**, or **WebVTT**. Paolo can drop the subtitle files straight into video edits.
 - **Timestamps toggle:** see when each line was said.
-- **A private link instead of an account:** every transcript gets a hard-to-guess URL. Your browser remembers the ones you made, and that's the whole "account system."
+- **A private link instead of a signup:** every transcript gets a hard-to-guess URL, and your browser remembers the ones you made.
+- **Optional accounts:** if you want your transcripts on every device, sign up with an email and password to get a searchable **My transcripts** history. It's never required to transcribe. Forgot-password emails a one-time reset link.
 - **Self-destructing data:** the audio is deleted the moment it's transcribed. The text deletes itself after 72 hours, or right away with **Delete now**.
 
 <!-- Bonus points: hand it to Paolo and add what he said here. -->
 
 ## Demo
+
+🌐 **Try it live: [tala.vicentereyes.org](https://tala.vicentereyes.org)**. No signup, just drop in a file.
 
 ▶️ **[Watch the demo video](https://share.vidyard.com/watch/qtnjGHRDCkx56fe2cLSBjx)**
 
@@ -60,16 +63,18 @@ React (Vite) ──/api──▶ FastAPI ──▶ PostgreSQL
 - `POST /api/transcriptions` streams the upload to disk in 1 MB chunks, enforcing the size limit without holding the file in memory. It saves a `pending` row and immediately returns **202** with the slug.
 - One **in-process worker thread** runs Whisper on one file at a time, so a CPU-heavy model doesn't overload the machine. On startup, unfinished jobs go back into the queue, so a restart doesn't lose anyone's work.
 - The audio file is deleted in the same step that saves the transcript, and also when a job fails. A periodic purge removes expired transcripts.
-- The tests swap Whisper for a fake transcriber, so the full API suite runs in under half a second.
+- **Optional accounts** use server-side sessions: the browser holds an `httpOnly` cookie, the database stores only a SHA-256 of it, and passwords are hashed with Argon2. Logging out ends the session on the server, and resetting a password logs out every device. Forgot-password answers the same way whether or not the email exists, and reset links arrive through [Resend](https://resend.com).
+- **Rate limits** on login, sign-up and password resets: 5 failed logins lock that email for 15 minutes, and blocked requests get a `429` with `Retry-After`.
+- The tests swap Whisper for a fake transcriber, so all 35 tests, from uploads to the full password-reset flow, run in seconds.
 
 **Frontend: React 18 + Vite + TypeScript**
 
 - **TanStack Query** polls the transcript every 1.5 seconds *only* while it's `pending` or `processing`, then stops.
-- **Zustand** (persisted) stores the "made in this browser" list, which is how Tala gets away with having no accounts.
+- **Zustand** (persisted) stores the "made in this browser" list, so people who never sign up still keep track of their transcripts.
 - **MediaRecorder** handles in-browser recording, picking whatever codec the browser supports. The backend decodes all of them through PyAV.
 - The UI is built with [ice-ds](https://www.npmjs.com/package/ice-ds), my neubrutalist component library.
 
-**Deployment:** one Docker image builds the React app, installs the API, and bakes the Whisper model in at build time. FastAPI serves the frontend and the API from one origin, and the container never contacts the model hub at runtime.
+**Deployment: [Render](https://render.com).** One Docker image builds the React app, installs the API, and bakes the Whisper model in at build time. FastAPI serves the frontend and the API from one origin, and the container never contacts the model hub at runtime. A `render.yaml` Blueprint defines the whole stack: a Docker web service running Whisper on CPU (1 CPU, 2 GB) plus Render Postgres, both in Singapore, close to Paolo. Every push to `main` redeploys automatically, and the live site is at [tala.vicentereyes.org](https://tala.vicentereyes.org).
 
 ### What testing on a real recording taught me
 
@@ -121,6 +126,6 @@ I built Tala pair-programming with Claude Code: scaffolding, the benchmark that 
 
 ## Prize Categories
 
-<!-- List the categories you're entering. If you deploy on Render, add: Best Use of Render. Otherwise remove this section. -->
+- **Best Use of Render:** Render is Tala's AI runtime. The open-weight Whisper model runs inside a Render web service, with Render Postgres for jobs and transcripts, all defined in a one-file Blueprint.
 
 Thanks for reading, and if you need audio turned into text, no signup required. 🎧

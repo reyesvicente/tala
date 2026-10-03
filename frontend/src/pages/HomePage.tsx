@@ -27,8 +27,8 @@ export default function HomePage() {
 
       <section className="grid gap-4 sm:grid-cols-3">
         <Card variant="primary" elevation="sm">
-          <CardTitle className="text-xl">No account</CardTitle>
-          <CardDescription>You get a private link. That's it.</CardDescription>
+          <CardTitle className="text-xl">No signup needed</CardTitle>
+          <CardDescription>You get a private link. Accounts are optional, just for keeping a history.</CardDescription>
         </Card>
         <Card variant="info" elevation="sm">
           <CardTitle className="text-xl">Audio deleted</CardTitle>

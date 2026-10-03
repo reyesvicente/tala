@@ -6,11 +6,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import UploadFile
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import Transcription, TranscriptionStatus, TranscriptionTask
+from app.models import Transcription, TranscriptionStatus, TranscriptionTask, User
 
 
 class UploadTooLarge(Exception):
@@ -57,9 +57,11 @@ def create_transcription(
     upload: UploadFile,
     language: str | None,
     task: TranscriptionTask,
+    user: User | None = None,
 ) -> Transcription:
     audio_path = save_upload(upload)
     transcription = Transcription(
+        user_id=user.id if user else None,
         original_filename=(upload.filename or "recording")[:255],
         audio_path=str(audio_path),
         requested_language=language or None,
@@ -73,6 +75,20 @@ def create_transcription(
 
 def get_by_slug(session: Session, slug: str) -> Transcription | None:
     return session.scalar(select(Transcription).where(Transcription.slug == slug))
+
+
+def list_for_user(
+    session: Session, user: User, *, page: int, page_size: int, query: str | None = None
+) -> tuple[list[Transcription], int]:
+    stmt = select(Transcription).where(Transcription.user_id == user.id)
+    if query:
+        escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(Transcription.original_filename.ilike(f"%{escaped}%", escape="\\"))
+    total = session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    items = session.scalars(
+        stmt.order_by(Transcription.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return list(items), total
 
 
 def _remove_audio(transcription: Transcription) -> None:

@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models import TranscriptionStatus, TranscriptionTask
 
@@ -44,3 +44,51 @@ class ServiceInfo(BaseModel):
     max_upload_mb: int
     retention_hours: int
     languages: dict[str, str]
+
+
+class Page[T](BaseModel):
+    items: list[T]
+    total: int
+    page: int
+    page_size: int
+
+
+class TranscriptionSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    slug: str
+    status: TranscriptionStatus
+    original_filename: str
+    detected_language: str | None
+    duration_seconds: float | None
+    created_at: datetime
+    expires_at: datetime
+
+
+Password = Annotated[str, Field(min_length=8, max_length=128)]
+
+
+class Credentials(BaseModel):
+    email: EmailStr
+    password: Password
+
+
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str = Field(max_length=128)
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str = Field(min_length=10, max_length=200)
+    password: Password
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    email: str
+    created_at: datetime

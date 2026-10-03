@@ -1,13 +1,13 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_job_runner
+from app.api.deps import CurrentUser, RequiredUser, get_job_runner
 from app.config import get_settings
 from app.db import get_session
 from app.models import Transcription, TranscriptionTask
-from app.schemas import Envelope, ServiceInfo, TranscriptionOut
+from app.schemas import Envelope, Page, ServiceInfo, TranscriptionOut, TranscriptionSummary
 from app.services import transcriptions
 from app.services.exporters import EXPORTERS
 from app.services.jobs import JobRunner
@@ -43,6 +43,7 @@ def info() -> Envelope[ServiceInfo]:
 def create_transcription(
     session: SessionDep,
     runner: RunnerDep,
+    user: CurrentUser,
     file: Annotated[UploadFile, File()],
     language: Annotated[str | None, Form()] = None,
     task: Annotated[TranscriptionTask, Form()] = TranscriptionTask.TRANSCRIBE,
@@ -50,7 +51,7 @@ def create_transcription(
     if language and language not in LANGUAGES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Unsupported language: {language}")
     try:
-        transcription = transcriptions.create_transcription(session, file, language, task)
+        transcription = transcriptions.create_transcription(session, file, language, task, user=user)
     except transcriptions.UploadTooLarge as exc:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, f"File is larger than {exc.args[0]} MB.") from exc
     except transcriptions.UnsupportedMedia as exc:
@@ -59,6 +60,25 @@ def create_transcription(
         ) from exc
     runner.submit(transcription.id)
     return Envelope(data=TranscriptionOut.model_validate(transcription), message="Queued for transcription.")
+
+
+@router.get("/transcriptions", response_model=Envelope[Page[TranscriptionSummary]])
+def list_my_transcriptions(
+    session: SessionDep,
+    user: RequiredUser,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    q: Annotated[str | None, Query(max_length=100, description="Search by file name")] = None,
+) -> Envelope[Page[TranscriptionSummary]]:
+    items, total = transcriptions.list_for_user(session, user, page=page, page_size=page_size, query=q)
+    return Envelope(
+        data=Page(
+            items=[TranscriptionSummary.model_validate(t) for t in items],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
+    )
 
 
 @router.get("/transcriptions/{slug}", response_model=Envelope[TranscriptionOut])

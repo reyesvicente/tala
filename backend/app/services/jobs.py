@@ -13,7 +13,7 @@ from collections.abc import Callable
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models import Transcription
-from app.services import transcriber, transcriptions
+from app.services import auth, transcriber, transcriptions
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,7 @@ class JobRunner:
             if time.monotonic() - last_purge > PURGE_INTERVAL_SECONDS:
                 with self._session_factory() as session:
                     purged = transcriptions.purge_expired(session)
+                    auth.purge_expired(session)
                 if purged:
                     logger.info("Purged %d expired transcriptions", purged)
                 last_purge = time.monotonic()

@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     # Transcripts self-destruct after this many hours. Audio is deleted right after transcription.
     retention_hours: int = 72
 
+    # Accounts (optional for users; transcribing never requires one)
+    app_url: str = "http://localhost:5173"  # used in password-reset links
+    session_days: int = 30
+    session_cookie_name: str = "tala_session"
+    cookie_secure: bool = True  # set False for plain-http local dev
+    password_reset_minutes: int = 60
+
+    # Email via Resend. Without an API key, reset links are logged instead of sent.
+    resend_api_key: str | None = None
+    email_from: str = "Tala <noreply@vicentereyes.org>"
+
     # Optional: absolute path to a built frontend (dist/) to serve from the same origin.
     frontend_dist: Path | None = None
     cors_origins: list[str] = []

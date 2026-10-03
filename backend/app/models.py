@@ -2,7 +2,7 @@ import enum
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import JSON, DateTime, Enum, Float, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -42,6 +42,8 @@ class Transcription(Base):
         Enum(TranscriptionTask, name="transcription_task", values_callable=lambda e: [m.value for m in e]),
         default=TranscriptionTask.TRANSCRIBE,
     )
+    # Set when the uploader was logged in; anonymous transcripts have no owner.
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     original_filename: Mapped[str] = mapped_column(String(255))
     audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     requested_language: Mapped[str | None] = mapped_column(String(8), nullable=True)
@@ -60,3 +62,35 @@ class Transcription(Base):
     @staticmethod
     def expiry_from_now(hours: int) -> datetime:
         return _utcnow() + timedelta(hours=hours)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class AuthSession(Base):
+    """A logged-in browser. Only the SHA-256 of the cookie token is stored."""
+
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

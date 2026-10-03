@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.auth import router as auth_router
 from app.api.transcriptions import router as transcriptions_router
 from app.config import get_settings
 from app.db import SessionLocal
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=exc.status_code,
             content={"data": None, "message": exc.detail, "errors": None},
+            headers=exc.headers,
         )
 
     @app.exception_handler(RequestValidationError)
@@ -55,6 +57,7 @@ def create_app() -> FastAPI:
     def health() -> dict:
         return {"data": {"ok": True}, "message": "", "errors": None}
 
+    app.include_router(auth_router)
     app.include_router(transcriptions_router)
 
     dist = settings.frontend_dist

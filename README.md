@@ -1,6 +1,6 @@
 # Tala — audio to text, no signup
 
-Free audio/video → text transcription. No account, no credit card. Built for Paolo for the
+Free audio/video → text transcription. No signup needed, no credit card. Built for Paolo for the
 DEV Hacktoberfest Weekend Challenge ("Build for a Friend").
 
 - **Open-weight model:** OpenAI Whisper via [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
@@ -57,14 +57,28 @@ recording took about 13 minutes on a 4-core laptop. Short voice memos take secon
 
 ### Your transcripts and privacy
 
-- There are no accounts. **Anyone with the link can read the transcript**, so share it only with
-  people you'd show it to.
-- The home page lists the transcripts **made in this browser** under *Made in this browser*.
-  Clearing your browser data, or switching to another device, loses that list, but the links
-  still work until they expire.
+- **Anyone with the link can read the transcript**, so share it only with people you'd show it to.
+  This is true whether or not you're logged in.
+- Without an account, the home page lists the transcripts **made in this browser** under *Made in
+  this browser*. Clearing your browser data, or switching to another device, loses that list, but
+  the links still work until they expire.
 - The **audio is deleted as soon as it's transcribed**. The text deletes itself after
   **3 days**. Save anything you want to keep with the download buttons.
 - Transcription runs on the Tala server itself. Your audio is never sent to an outside AI service.
+
+### Accounts (optional)
+
+You never need an account to transcribe. Creating one adds **My transcripts**: a list of everything
+you transcribed while logged in, on any device, with search.
+
+- **Sign up:** click **Sign up** at the top, enter your email and a password (8+ characters).
+- **Log in / Log out:** use the buttons at the top right. Logging out ends the session on the server.
+- **Forgot password:** on the log-in page, click **Forgot password?** and enter your email. If it has
+  an account, you'll get a link that works once, for 60 minutes. Setting a new password logs you out
+  on every other device.
+- Transcripts in your history still delete themselves after 3 days, like everyone else's.
+- **Too many attempts:** after 5 wrong passwords, that account's log-in is paused for 15 minutes.
+  Sign-ups and reset requests are also limited per network. The message tells you how long to wait.
 
 ### Tips for better results
 
@@ -136,6 +150,11 @@ Set these in `.envs/.local/.api` locally, or as environment variables in product
 | `WHISPER_NO_REPEAT_NGRAM_SIZE` | `0` | Set to e.g. `4` to block loops harder (may also clip real repeats) |
 | `MAX_UPLOAD_MB` | `100` | Upload size limit |
 | `RETENTION_HOURS` | `72` | How long transcripts live |
+| `APP_URL` | `http://localhost:5173` | Public URL of the site, used in password-reset links |
+| `RESEND_API_KEY` | unset | [Resend](https://resend.com) key for reset emails. Unset: links are printed in the API logs |
+| `EMAIL_FROM` | `Tala <noreply@vicentereyes.org>` | Sender; its domain must be verified in Resend |
+| `COOKIE_SECURE` | `true` | Set `false` for plain-http local dev |
+| `SESSION_DAYS` | `30` | How long a login lasts |
 
 ### API
 
@@ -148,6 +167,20 @@ All JSON responses use `{ "data": ..., "message": "", "errors": null }`.
 | `GET` | `/api/transcriptions/{slug}` | status, progress, text, segments |
 | `GET` | `/api/transcriptions/{slug}/export/{txt,srt,vtt}` | download |
 | `DELETE` | `/api/transcriptions/{slug}` | delete now |
+| `GET` | `/api/transcriptions?page=&page_size=&q=` | logged-in user's history (paginated, search by file name) |
+| `POST` | `/api/auth/register` | `{email, password}` → creates account, logs in |
+| `POST` | `/api/auth/login` | `{email, password}` → sets session cookie |
+| `POST` | `/api/auth/logout` | ends the session |
+| `GET` | `/api/auth/me` | current user, or 401 |
+| `POST` | `/api/auth/forgot-password` | `{email}` → always 202; emails a reset link if the account exists |
+| `POST` | `/api/auth/reset-password` | `{token, password}` → sets new password, logs out other sessions |
+
+Sessions are server-side: the browser holds an `httpOnly`, `SameSite=Lax` cookie and the database
+stores only a SHA-256 of it. Passwords are hashed with Argon2.
+
+Rate limits (in memory, per instance): login 20 per IP / 5 min and 5 failures per email / 15 min;
+register 5 per IP / hour; forgot-password 5 per IP / 15 min; reset-password 10 per IP / 15 min.
+Blocked requests return `429` with a `Retry-After` header.
 
 OpenAPI docs: http://localhost:8000/api/docs
 

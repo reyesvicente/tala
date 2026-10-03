@@ -27,6 +27,13 @@ services:
         value: "100"
       - key: RETENTION_HOURS
         value: "72"
+      - key: APP_URL
+        value: https://tala.vicentereyes.org
+      - key: EMAIL_FROM
+        value: Tala <noreply@vicentereyes.org>
+      # Secret: set it in the Render dashboard (Environment tab), never in this file.
+      - key: RESEND_API_KEY
+        sync: false
 
 databases:
   - name: tala-db

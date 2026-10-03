@@ -31,6 +31,14 @@ async function parse<T>(res: Response): Promise<T> {
 export const api = {
   get: async <T>(path: string) => parse<T>(await fetch(`/api${path}`)),
   delete: async <T>(path: string) => parse<T>(await fetch(`/api${path}`, { method: "DELETE" })),
+  postJson: async <T>(path: string, body?: unknown) =>
+    parse<T>(
+      await fetch(`/api${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      }),
+    ),
   postForm: async <T>(path: string, form: FormData) =>
     parse<T>(await fetch(`/api${path}`, { method: "POST", body: form })),
 };

@@ -32,3 +32,20 @@ export interface ServiceInfo {
   retention_hours: number;
   languages: Record<string, string>;
 }
+
+export interface TranscriptionSummary {
+  slug: string;
+  status: TranscriptionStatus;
+  original_filename: string;
+  detected_language: string | null;
+  duration_seconds: number | null;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}

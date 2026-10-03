@@ -17,3 +17,8 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 def get_session() -> Iterator[Session]:
     with SessionLocal() as session:
         yield session
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    """For work that outlives the request (background tasks)."""
+    return SessionLocal

@@ -1,15 +1,28 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 
 import type { NewTranscriptionValues } from "./schema";
-import type { ServiceInfo, Transcription } from "./types";
+import type { Page, ServiceInfo, Transcription, TranscriptionSummary } from "./types";
 
 export const transcriptionKeys = {
   all: ["transcriptions"] as const,
   info: () => [...transcriptionKeys.all, "info"] as const,
   detail: (slug: string) => [...transcriptionKeys.all, "detail", slug] as const,
+  history: (page: number, query: string) => [...transcriptionKeys.all, "history", page, query] as const,
 };
+
+export function useHistory(page: number, query: string) {
+  return useQuery({
+    queryKey: transcriptionKeys.history(page, query),
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), page_size: "20" });
+      if (query) params.set("q", query);
+      return api.get<Page<TranscriptionSummary>>(`/transcriptions?${params}`);
+    },
+    placeholderData: keepPreviousData,
+  });
+}
 
 export function useServiceInfo() {
   return useQuery({
@@ -41,7 +54,10 @@ export function useCreateTranscription() {
       if (values.language) form.append("language", values.language);
       return api.postForm<Transcription>("/transcriptions", form);
     },
-    onSuccess: (data) => queryClient.setQueryData(transcriptionKeys.detail(data.slug), data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(transcriptionKeys.detail(data.slug), data);
+      queryClient.invalidateQueries({ queryKey: [...transcriptionKeys.all, "history"] });
+    },
   });
 }
 
@@ -49,6 +65,9 @@ export function useDeleteTranscription() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (slug: string) => api.delete<null>(`/transcriptions/${encodeURIComponent(slug)}`),
-    onSuccess: (_, slug) => queryClient.removeQueries({ queryKey: transcriptionKeys.detail(slug) }),
+    onSuccess: (_, slug) => {
+      queryClient.removeQueries({ queryKey: transcriptionKeys.detail(slug) });
+      queryClient.invalidateQueries({ queryKey: [...transcriptionKeys.all, "history"] });
+    },
   });
 }
