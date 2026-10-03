@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # ~6x faster than sequential on CPU. Greedy (beam 1) is as accurate here and a bit faster.
     whisper_batch_size: int = 8
     whisper_beam_size: int = 1
+    # Guards against repetition loops (batched decoding has no temperature fallback).
+    whisper_repetition_penalty: float = 1.1
+    whisper_no_repeat_ngram_size: int = 0  # e.g. 4 blocks loops harder, may clip real repeats
 
     upload_dir: Path = Path("/data/uploads")
     max_upload_mb: int = 100

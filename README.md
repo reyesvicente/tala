@@ -10,15 +10,98 @@ DEV Hacktoberfest Weekend Challenge ("Build for a Friend").
 - Upload a file or record in the browser · auto-detect ~100 languages · translate to English ·
   export TXT / SRT / WebVTT.
 
-## Stack
+---
+
+## Using Tala
+
+### 1. Add your audio
+
+On the home page, pick one:
+
+- **Upload a file:** drag it onto the box, or click to browse. Most audio and video formats work:
+  `mp3`, `m4a`, `aac`, `wav`, `flac`, `ogg`, `webm`, `mp4`, `mov`, and more. Max 100 MB.
+- **Record now:** click **Start recording**, allow microphone access, and click **Stop recording**
+  when you're done. Use the player that appears to listen before you send it.
+
+### 2. Choose the options
+
+- **Spoken language:** leave it on **Auto-detect**, or pick the language yourself. Picking it
+  helps with short clips and mixed-language audio like Taglish.
+- **Output:**
+  - **Transcript in the same language:** writes down what was said, as it was said.
+  - **Translate to English:** gives you English text, whatever language was spoken.
+
+Click **Turn it into text**.
+
+### 3. Wait for it
+
+You're taken to your transcript's private link straight away. The page shows:
+
+- **In line:** another file is being transcribed first. Tala works on one at a time.
+- **Preparing audio:** decoding the file and finding the parts with speech. This takes about a
+  minute for long recordings.
+- **Listening…:** a progress bar with an estimate of the time left.
+
+You don't need to keep the tab open. **Bookmark or copy the link** and come back later.
+
+How long it takes depends on the length of the audio and the server. As a rough guide, a 70-minute
+recording took about 13 minutes on a 4-core laptop. Short voice memos take seconds.
+
+### 4. Use the transcript
+
+- **Copy text:** copies the full transcript to your clipboard.
+- **Text / SRT subtitles / WebVTT:** downloads the transcript. SRT and VTT include timestamps, so
+  you can drop them into a video editor or player as captions.
+- **Timestamps:** switch this on to see when each line was said.
+- **Delete now:** removes the transcript right away. The link stops working for everyone.
+
+### Your transcripts and privacy
+
+- There are no accounts. **Anyone with the link can read the transcript**, so share it only with
+  people you'd show it to.
+- The home page lists the transcripts **made in this browser** under *Made in this browser*.
+  Clearing your browser data, or switching to another device, loses that list, but the links
+  still work until they expire.
+- The **audio is deleted as soon as it's transcribed**. The text deletes itself after
+  **3 days**. Save anything you want to keep with the download buttons.
+- Transcription runs on the Tala server itself. Your audio is never sent to an outside AI service.
+
+### Tips for better results
+
+- Clear audio beats everything: record close to the speaker and avoid background music.
+- For non-English audio, set the language yourself instead of using auto-detect.
+- Long silences are skipped automatically, so you don't need to trim them.
+- The default `base` model is fast but makes mistakes, especially with Tagalog/Taglish. If accuracy
+  matters more than speed, ask whoever runs the server to switch to a larger model (see
+  [Configuration](#configuration)).
+
+### Troubleshooting
+
+| Problem | What to do |
+|---|---|
+| "That doesn't look like an audio or video file." | The file isn't media, or its type couldn't be detected. Convert it to mp3 or m4a and try again. |
+| "File is larger than 100 MB." | Split the recording, or export it at a lower bitrate (audio-only mp3/m4a is much smaller than video). |
+| "Microphone access was blocked." | Allow the microphone in your browser's site settings (padlock icon in the address bar), then reload. |
+| Recording isn't available | Your browser doesn't support in-browser recording. Record with your phone's voice memo app and upload the file. |
+| "Transcript not found." | It expired after 3 days or was deleted. Upload the audio again. |
+| "That one didn't work" | The file couldn't be decoded. It may be damaged or use an unusual codec; convert it to mp3 and retry. |
+| Repeated or garbled lines | Whisper sometimes loops on unclear audio. Tala removes most repeats; for better accuracy use a larger model. |
+
+---
+
+## Running it yourself
+
+### Stack
 
 | | |
 |---|---|
 | API | FastAPI, SQLAlchemy 2, Alembic, PostgreSQL |
-| Transcription | faster-whisper, single in-process worker thread (jobs resume after restart) |
+| Transcription | faster-whisper (batched decoding), single in-process worker thread (jobs resume after restart) |
 | Frontend | React 18 + Vite + TypeScript, TanStack Query, Zustand, React Hook Form + Zod, ice-ds, Tailwind |
 
-## Run locally
+### Local development
+
+Requirements: Docker with Compose, and Node.js 20+.
 
 ```bash
 cp .envs/.local/.api.example .envs/.local/.api
@@ -29,7 +112,6 @@ cd frontend && npm install && npm run dev                # http://localhost:5173
 ```
 
 The first transcription downloads the Whisper model (~150 MB for `base`) into a Docker volume.
-Pick a different size with `WHISPER_MODEL` (`tiny`, `base`, `small`, `medium`, `large-v3`).
 
 ### Backend commands
 
@@ -39,7 +121,23 @@ docker compose -f docker-compose.local.yml run --rm api ruff check .
 docker compose -f docker-compose.local.yml run --rm api alembic revision --autogenerate -m "..."
 ```
 
-## API
+### Configuration
+
+Set these in `.envs/.local/.api` locally, or as environment variables in production.
+
+| Variable | Default | |
+|---|---|---|
+| `DATABASE_URL` | local Postgres | SQLAlchemy URL, e.g. `postgresql+psycopg://user:pass@host:5432/db` |
+| `WHISPER_MODEL` | `base` | `tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`. Bigger is more accurate, slower, and needs more RAM. |
+| `WHISPER_COMPUTE_TYPE` | `int8` | Quantization; `int8` is best on CPU |
+| `WHISPER_BATCH_SIZE` | `8` | Speech chunks decoded in parallel |
+| `WHISPER_BEAM_SIZE` | `1` | `1` = greedy (fastest); `5` is slower |
+| `WHISPER_REPETITION_PENALTY` | `1.1` | Discourages repetition loops |
+| `WHISPER_NO_REPEAT_NGRAM_SIZE` | `0` | Set to e.g. `4` to block loops harder (may also clip real repeats) |
+| `MAX_UPLOAD_MB` | `100` | Upload size limit |
+| `RETENTION_HOURS` | `72` | How long transcripts live |
+
+### API
 
 All JSON responses use `{ "data": ..., "message": "", "errors": null }`.
 
@@ -53,7 +151,23 @@ All JSON responses use `{ "data": ..., "message": "", "errors": null }`.
 
 OpenAPI docs: http://localhost:8000/api/docs
 
-## Production
+Example with `curl`:
 
-`compose/production/Dockerfile` builds a single image (frontend baked in, model pre-downloaded) that
-serves the SPA and API from one origin. It needs `DATABASE_URL` and honors `PORT`.
+```bash
+curl -F file=@memo.m4a -F language=tl http://localhost:8000/api/transcriptions
+curl http://localhost:8000/api/transcriptions/<slug>
+curl -OJ http://localhost:8000/api/transcriptions/<slug>/export/srt
+```
+
+### Production
+
+`compose/production/Dockerfile` builds a single image that serves the frontend and the API from one
+origin. The Whisper model is downloaded at build time, so the container never calls the Hugging Face
+Hub at runtime. Choose the model with a build argument:
+`docker build --build-arg WHISPER_MODEL=small -f compose/production/Dockerfile .`
+
+It needs `DATABASE_URL`, honors `PORT`, and runs migrations on start. Deployment notes:
+
+- Give it at least 2 GB RAM for `base`, and 4 GB with 2+ CPUs for `small` or `large-v3-turbo`.
+- Run **one** instance only; the job queue lives inside the process.
+- Optionally mount a persistent disk at `/data` so jobs in progress survive a redeploy.

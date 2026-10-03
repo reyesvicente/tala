@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from faster_whisper import BatchedInferencePipeline, WhisperModel
 
 from app.config import get_settings
+from app.services.cleanup import clean_segments
 
 ProgressCallback = Callable[[float], None]
 
@@ -56,6 +57,8 @@ def transcribe(
         vad_filter=True,  # skip silence: faster and fewer hallucinations
         batch_size=settings.whisper_batch_size,
         beam_size=settings.whisper_beam_size,
+        repetition_penalty=settings.whisper_repetition_penalty,
+        no_repeat_ngram_size=settings.whisper_no_repeat_ngram_size,
     )
 
     segments: list[dict] = []
@@ -67,6 +70,7 @@ def transcribe(
             on_progress(min(seg.end / info.duration, 0.99))
             last_report = now
 
+    segments = clean_segments(segments)
     return TranscriptResult(
         text="\n".join(s["text"] for s in segments if s["text"]),
         segments=segments,

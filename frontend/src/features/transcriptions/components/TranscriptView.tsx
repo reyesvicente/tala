@@ -111,7 +111,7 @@ export function TranscriptView({ job }: { job: Transcription }) {
         </Modal>
       </div>
 
-      <Card elevation="md" className="bg-white">
+      <Card elevation="md" className="min-w-0 bg-white">
         <div className="mb-4 flex items-center justify-between gap-4 border-b-[3px] border-neo-black pb-4">
           <h2 className="text-2xl">Transcript</h2>
           <Switch label="Timestamps" checked={showTimestamps} onCheckedChange={setShowTimestamps} />
@@ -123,12 +123,12 @@ export function TranscriptView({ job }: { job: Transcription }) {
             {job.segments?.map((segment, index) => (
               <li key={index} className="grid grid-cols-[4.5rem_1fr] gap-3">
                 <span className="font-mono text-sm leading-7 text-neo-black/60">{formatClock(segment.start)}</span>
-                <span className="text-lg leading-7">{segment.text}</span>
+                <span className="min-w-0 text-lg leading-7 [overflow-wrap:anywhere]">{segment.text}</span>
               </li>
             ))}
           </ol>
         ) : (
-          <div className="whitespace-pre-wrap text-lg leading-8">{job.text}</div>
+          <div className="whitespace-pre-wrap text-lg leading-8 [overflow-wrap:anywhere]">{job.text}</div>
         )}
       </Card>
     </div>
