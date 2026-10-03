@@ -73,6 +73,13 @@ def create_transcription(
     return transcription
 
 
+def can_access(transcription: Transcription, user: User | None) -> bool:
+    """Anonymous transcripts are shared by link; account transcripts are owner-only."""
+    if transcription.user_id is None:
+        return True
+    return user is not None and user.id == transcription.user_id
+
+
 def get_by_slug(session: Session, slug: str) -> Transcription | None:
     return session.scalar(select(Transcription).where(Transcription.slug == slug))
 

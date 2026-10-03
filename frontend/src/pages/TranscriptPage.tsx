@@ -2,6 +2,7 @@ import { Alert, Button, Skeleton } from "ice-ds";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { useMe } from "@/features/auth/api";
 import { useTranscription } from "@/features/transcriptions/api";
 import { JobStatus } from "@/features/transcriptions/components/JobStatus";
 import { TranscriptView } from "@/features/transcriptions/components/TranscriptView";
@@ -12,6 +13,7 @@ export default function TranscriptPage() {
   const { slug = "" } = useParams();
   const { data: job, error, isPending } = useTranscription(slug);
   const removeRecent = useRecentStore((state) => state.remove);
+  const { data: user } = useMe();
   const notFound = error instanceof ApiError && error.status === 404;
 
   useEffect(() => {
@@ -37,9 +39,18 @@ export default function TranscriptPage() {
     return (
       <div className="space-y-6">
         <Alert intent={notFound ? "warning" : "error"} title={error.message} />
-        <Link to="/">
-          <Button type="button">Transcribe something</Button>
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          {notFound && !user && (
+            <Link to={`/login?next=${encodeURIComponent(`/t/${slug}`)}`}>
+              <Button type="button">Log in</Button>
+            </Link>
+          )}
+          <Link to="/">
+            <Button type="button" variant={notFound && !user ? "secondary" : "primary"}>
+              Transcribe something
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

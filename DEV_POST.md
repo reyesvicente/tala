@@ -23,7 +23,7 @@ So I built **Tala** (Tagalog for *note* or *record*). It does one thing:
 - **Exports:** copy the text, or download plain text, **SRT**, or **WebVTT**. Paolo can drop the subtitle files straight into video edits.
 - **Timestamps toggle:** see when each line was said.
 - **A private link instead of a signup:** every transcript gets a hard-to-guess URL, and your browser remembers the ones you made.
-- **Optional accounts:** if you want your transcripts on every device, sign up with an email and password to get a searchable **My transcripts** history. It's never required to transcribe. Forgot-password emails a one-time reset link.
+- **Optional accounts:** if you want your transcripts on every device, sign up with an email and password to get a searchable **My transcripts** history. Transcripts you make while logged in are **private**: only you can open them, even if the link leaks. It's never required to transcribe. Forgot-password emails a one-time reset link.
 - **Self-destructing data:** the audio is deleted the moment it's transcribed. The text deletes itself after 72 hours, or right away with **Delete now**.
 
 <!-- Bonus points: hand it to Paolo and add what he said here. -->

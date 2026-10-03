@@ -67,12 +67,16 @@ export function TranscriptView({ job }: { job: Transcription }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {languageName && <Badge>{languageName}</Badge>}
+          {job.private && <Badge variant="default">Private</Badge>}
           {job.task === "translate" && <Badge variant="premium">Translated to English</Badge>}
           {job.duration_seconds != null && <Badge variant="info">{formatClock(job.duration_seconds)} long</Badge>}
           {job.model_name && <Badge variant="new">whisper-{job.model_name}</Badge>}
         </div>
         <p className="text-sm">
-          Anyone with this link can read it. It deletes itself {timeUntil(job.expires_at)}; the audio is already gone.
+          {job.private
+            ? "Private: only you can open this, while logged in."
+            : "Anyone with this link can read it."}{" "}
+          It deletes itself {timeUntil(job.expires_at)}; the audio is already gone.
         </p>
       </Card>
 

@@ -36,7 +36,9 @@ export function NewTranscriptionForm() {
     if (tooLarge) return;
     createTranscription.mutate(values, {
       onSuccess: (job) => {
-        addRecent({
+        // Account uploads live in "My transcripts"; keep their names out of this shared browser list.
+        if (!job.private)
+          addRecent({
           slug: job.slug,
           filename: job.original_filename,
           createdAt: job.created_at,

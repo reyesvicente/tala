@@ -24,6 +24,8 @@ class TranscriptionOut(BaseModel):
     slug: str
     status: TranscriptionStatus
     task: TranscriptionTask
+    # True when it belongs to an account (owner-only); False means anyone with the link can open it.
+    private: bool
     original_filename: str
     requested_language: str | None
     detected_language: str | None

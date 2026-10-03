@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequiredUser, get_job_runner
 from app.config import get_settings
 from app.db import get_session
-from app.models import Transcription, TranscriptionTask
+from app.models import Transcription, TranscriptionTask, User
 from app.schemas import Envelope, Page, ServiceInfo, TranscriptionOut, TranscriptionSummary
 from app.services import transcriptions
 from app.services.exporters import EXPORTERS
@@ -19,10 +19,14 @@ SessionDep = Annotated[Session, Depends(get_session)]
 RunnerDep = Annotated[JobRunner, Depends(get_job_runner)]
 
 
-def _get_or_404(session: Session, slug: str) -> Transcription:
+def _get_or_404(session: Session, slug: str, user: User | None) -> Transcription:
     transcription = transcriptions.get_by_slug(session, slug)
-    if transcription is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transcript not found. It may have expired or been deleted.")
+    # Someone else's private transcript looks exactly like a missing one.
+    if transcription is None or not transcriptions.can_access(transcription, user):
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Transcript not found. It may have expired or been deleted. If it's yours, log in to see it.",
+        )
     return transcription
 
 
@@ -82,13 +86,15 @@ def list_my_transcriptions(
 
 
 @router.get("/transcriptions/{slug}", response_model=Envelope[TranscriptionOut])
-def get_transcription(slug: str, session: SessionDep) -> Envelope[TranscriptionOut]:
-    return Envelope(data=TranscriptionOut.model_validate(_get_or_404(session, slug)))
+def get_transcription(slug: str, session: SessionDep, user: CurrentUser) -> Envelope[TranscriptionOut]:
+    return Envelope(data=TranscriptionOut.model_validate(_get_or_404(session, slug, user)))
 
 
 @router.get("/transcriptions/{slug}/export/{fmt}")
-def export_transcription(slug: str, fmt: Literal["txt", "srt", "vtt"], session: SessionDep) -> Response:
-    transcription = _get_or_404(session, slug)
+def export_transcription(
+    slug: str, fmt: Literal["txt", "srt", "vtt"], session: SessionDep, user: CurrentUser
+) -> Response:
+    transcription = _get_or_404(session, slug, user)
     if transcription.text is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Transcript isn't ready yet.")
     media_type, render = EXPORTERS[fmt]
@@ -101,6 +107,6 @@ def export_transcription(slug: str, fmt: Literal["txt", "srt", "vtt"], session: 
 
 
 @router.delete("/transcriptions/{slug}", response_model=Envelope[None])
-def delete_transcription(slug: str, session: SessionDep) -> Envelope[None]:
-    transcriptions.delete_transcription(session, _get_or_404(session, slug))
+def delete_transcription(slug: str, session: SessionDep, user: CurrentUser) -> Envelope[None]:
+    transcriptions.delete_transcription(session, _get_or_404(session, slug, user))
     return Envelope(message="Deleted.")

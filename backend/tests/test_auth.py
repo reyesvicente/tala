@@ -120,3 +120,37 @@ def test_history_lists_only_my_transcripts(client):
     client.post("/api/auth/logout")
     _register(client, email="someone@example.com")
     assert client.get("/api/transcriptions").json()["data"]["total"] == 0
+
+
+def test_account_transcripts_are_owner_only(client):
+    _register(client)
+    slug = _upload(client, "private-call.m4a").json()["data"]["slug"]
+    mine = client.get(f"/api/transcriptions/{slug}").json()["data"]
+    assert mine["private"] is True
+    assert client.get(f"/api/transcriptions/{slug}/export/txt").status_code == 200
+
+    # Logged out: looks exactly like a missing transcript.
+    client.post("/api/auth/logout")
+    for method, path in [
+        ("get", f"/api/transcriptions/{slug}"),
+        ("get", f"/api/transcriptions/{slug}/export/txt"),
+        ("delete", f"/api/transcriptions/{slug}"),
+    ]:
+        assert getattr(client, method)(path).status_code == 404
+
+    # Another account can't see or delete it either.
+    _register(client, email="someone-else@example.com")
+    assert client.get(f"/api/transcriptions/{slug}").status_code == 404
+    assert client.delete(f"/api/transcriptions/{slug}").status_code == 404
+
+    # The owner still can.
+    client.post("/api/auth/logout")
+    client.post("/api/auth/login", json={"email": EMAIL, "password": PASSWORD})
+    assert client.delete(f"/api/transcriptions/{slug}").status_code == 200
+
+
+def test_anonymous_transcripts_stay_link_shareable(client):
+    slug = _upload(client).json()["data"]["slug"]
+    assert client.get(f"/api/transcriptions/{slug}").json()["data"]["private"] is False
+    _register(client)
+    assert client.get(f"/api/transcriptions/{slug}").status_code == 200

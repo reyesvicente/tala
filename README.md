@@ -57,8 +57,10 @@ recording took about 13 minutes on a 4-core laptop. Short voice memos take secon
 
 ### Your transcripts and privacy
 
-- **Anyone with the link can read the transcript**, so share it only with people you'd show it to.
-  This is true whether or not you're logged in.
+- **Logged out:** anyone with the link can read the transcript, so share it only with people you'd
+  show it to.
+- **Logged in:** the transcript is **private**. Only you can open, download or delete it, and only
+  while logged in. Anyone else who opens the link sees "not found".
 - Without an account, the home page lists the transcripts **made in this browser** under *Made in
   this browser*. Clearing your browser data, or switching to another device, loses that list, but
   the links still work until they expire.
@@ -69,7 +71,8 @@ recording took about 13 minutes on a 4-core laptop. Short voice memos take secon
 ### Accounts (optional)
 
 You never need an account to transcribe. Creating one adds **My transcripts**: a list of everything
-you transcribed while logged in, on any device, with search.
+you transcribed while logged in, on any device, with search. Transcripts made while logged in are
+private to you.
 
 - **Sign up:** click **Sign up** at the top, enter your email and a password (8+ characters).
 - **Log in / Log out:** use the buttons at the top right. Logging out ends the session on the server.
@@ -174,6 +177,9 @@ All JSON responses use `{ "data": ..., "message": "", "errors": null }`.
 | `GET` | `/api/auth/me` | current user, or 401 |
 | `POST` | `/api/auth/forgot-password` | `{email}` → always 202; emails a reset link if the account exists |
 | `POST` | `/api/auth/reset-password` | `{token, password}` → sets new password, logs out other sessions |
+
+Transcripts created while logged in are owner-only: `GET`, export and `DELETE` return `404` to
+anyone else (indistinguishable from a missing transcript). Anonymous transcripts are shared by link.
 
 Sessions are server-side: the browser holds an `httpOnly`, `SameSite=Lax` cookie and the database
 stores only a SHA-256 of it. Passwords are hashed with Argon2.

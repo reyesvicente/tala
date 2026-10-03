@@ -11,6 +11,8 @@ export interface Transcription {
   slug: string;
   status: TranscriptionStatus;
   task: TranscriptionTask;
+  /** Belongs to an account: only the owner can open it. */
+  private: boolean;
   original_filename: string;
   requested_language: string | null;
   detected_language: string | null;

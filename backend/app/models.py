@@ -59,6 +59,10 @@ class Transcription(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
+    @property
+    def private(self) -> bool:
+        return self.user_id is not None
+
     @staticmethod
     def expiry_from_now(hours: int) -> datetime:
         return _utcnow() + timedelta(hours=hours)
