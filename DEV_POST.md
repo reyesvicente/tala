@@ -29,7 +29,7 @@ So I built **Tala** (Tagalog for *note* or *record*). It does one thing:
 
 ## Demo
 
-<!-- Add your deployed link and/or a short video: upload → progress bar → transcript -->
+▶️ **[Watch the demo video](https://share.vidyard.com/watch/qtnjGHRDCkx56fe2cLSBjx)**
 
 The flow is three screens:
 
