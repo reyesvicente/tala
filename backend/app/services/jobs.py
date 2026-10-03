@@ -9,6 +9,7 @@ import queue
 import threading
 import time
 from collections.abc import Callable
+from pathlib import Path
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -18,6 +19,9 @@ from app.services import auth, transcriber, transcriptions
 logger = logging.getLogger(__name__)
 
 PURGE_INTERVAL_SECONDS = 600
+AUDIO_LOST_MESSAGE = (
+    "The server restarted before this file was transcribed, so the upload was lost. Please upload it again."
+)
 
 
 class JobRunner:
@@ -74,6 +78,10 @@ class JobRunner:
         with self._session_factory() as session:
             job = session.get(Transcription, job_id)
             if job is None or not job.audio_path:
+                return
+            if not Path(job.audio_path).exists():
+                # Uploads live on local disk; a restart/redeploy without a persistent disk loses them.
+                transcriptions.mark_failed(session, job, AUDIO_LOST_MESSAGE)
                 return
             transcriptions.mark_processing(session, job)
 

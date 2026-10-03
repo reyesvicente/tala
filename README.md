@@ -152,7 +152,7 @@ Set these in `.envs/.local/.api` locally, or as environment variables in product
 | `RETENTION_HOURS` | `72` | How long transcripts live |
 | `APP_URL` | `http://localhost:5173` | Public URL of the site, used in password-reset links |
 | `RESEND_API_KEY` | unset | [Resend](https://resend.com) key for reset emails. Unset: links are printed in the API logs |
-| `EMAIL_FROM` | `Tala <noreply@vicentereyes.org>` | Sender; its domain must be verified in Resend |
+| `EMAIL_FROM` | `Tala <noreply@rs.vicentereyes.org>` | Sender; its domain (`rs.vicentereyes.org`) must be verified in Resend |
 | `COOKIE_SECURE` | `true` | Set `false` for plain-http local dev |
 | `SESSION_DAYS` | `30` | How long a login lasts |
 
@@ -222,6 +222,7 @@ Plans in the blueprint:
 | Resource | Plan | Why |
 |---|---|---|
 | Web service | `1c-2g` (1 CPU, 2 GB) | Whisper `base` uses ~500 MB while transcribing, so the 512 MB plans are too small. With 1 CPU, expect long files to take longer than on a laptop. |
+| Disk | 1 GB at `/data` | Keeps uploads that are waiting to be transcribed across deploys and restarts. |
 | Postgres | `free` | Enough for a demo. Render's free databases have limits and can expire; move to a paid plan (e.g. `0.1c-256mb`) to keep it long-term. |
 
 Check Render's pricing page for current costs, and apply any credits you have before deploying.

@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # Email via Resend. Without an API key, reset links are logged instead of sent.
     resend_api_key: str | None = None
-    email_from: str = "Tala <noreply@vicentereyes.org>"
+    email_from: str = "Tala <noreply@rs.vicentereyes.org>"
 
     # Optional: absolute path to a built frontend (dist/) to serve from the same origin.
     frontend_dist: Path | None = None

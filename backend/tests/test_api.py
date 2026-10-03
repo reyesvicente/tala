@@ -64,3 +64,21 @@ def test_rejects_unknown_language(client):
 def test_rejects_oversized(client, monkeypatch):
     monkeypatch.setattr(get_settings(), "max_upload_mb", 0)
     assert _upload(client).status_code == 413
+
+
+def test_missing_audio_fails_with_friendly_message(client, session_factory):
+    from app.models import Transcription
+    from app.services.jobs import AUDIO_LOST_MESSAGE
+
+    runner = client.app.state.job_runner
+    runner.submit = lambda job_id: None  # queue it without processing
+    slug = _upload(client).json()["data"]["slug"]
+    with session_factory() as session:
+        job = session.query(Transcription).filter_by(slug=slug).one()
+        Path(job.audio_path).unlink()  # simulate a redeploy wiping local disk
+        job_id = job.id
+
+    runner.process(job_id)
+    data = client.get(f"/api/transcriptions/{slug}").json()["data"]
+    assert data["status"] == "failed"
+    assert data["error"] == AUDIO_LOST_MESSAGE

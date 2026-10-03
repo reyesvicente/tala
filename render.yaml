@@ -12,6 +12,12 @@ services:
     healthCheckPath: /api/health
     # The job queue lives in-process: keep this at exactly one instance.
     numInstances: 1
+    # Uploads wait here until transcribed. A disk keeps them across deploys/restarts, and
+    # makes Render stop the old instance before starting the new one (no overlapping workers).
+    disk:
+      name: tala-data
+      mountPath: /data
+      sizeGB: 1
     # The Whisper model is baked into the image (and the Hub is offline at runtime), so change
     # the model with `ARG WHISPER_MODEL` in compose/production/Dockerfile, not an env var here.
     envVars:
@@ -30,7 +36,7 @@ services:
       - key: APP_URL
         value: https://tala.vicentereyes.org
       - key: EMAIL_FROM
-        value: Tala <noreply@vicentereyes.org>
+        value: Tala <noreply@rs.vicentereyes.org>
       # Secret: set it in the Render dashboard (Environment tab), never in this file.
       - key: RESEND_API_KEY
         sync: false
