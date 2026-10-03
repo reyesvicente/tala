@@ -82,3 +82,19 @@ def test_missing_audio_fails_with_friendly_message(client, session_factory):
     data = client.get(f"/api/transcriptions/{slug}").json()["data"]
     assert data["status"] == "failed"
     assert data["error"] == AUDIO_LOST_MESSAGE
+
+
+def test_unreadable_audio_gets_friendly_message(client, monkeypatch):
+    import av
+
+    from app.services.jobs import UNREADABLE_MESSAGE
+
+    def broken(*args, **kwargs):
+        raise av.error.InvalidDataError(1094995529, "Invalid data found when processing input", "/data/uploads/x.webm")
+
+    monkeypatch.setattr(client.app.state.job_runner, "_transcribe", broken)
+    slug = _upload(client).json()["data"]["slug"]
+    data = client.get(f"/api/transcriptions/{slug}").json()["data"]
+    assert data["status"] == "failed"
+    assert data["error"] == UNREADABLE_MESSAGE
+    assert "/data/uploads" not in data["error"]

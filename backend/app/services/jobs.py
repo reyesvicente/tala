@@ -11,6 +11,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
+import av
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models import Transcription
@@ -19,6 +20,11 @@ from app.services import auth, transcriber, transcriptions
 logger = logging.getLogger(__name__)
 
 PURGE_INTERVAL_SECONDS = 600
+UNREADABLE_MESSAGE = (
+    "This file couldn't be read. It may be empty, damaged, or in an unusual format. "
+    "Try converting it to mp3 or m4a, or record it again."
+)
+GENERIC_FAILURE_MESSAGE = "Something went wrong while transcribing this file. Please try uploading it again."
 AUDIO_LOST_MESSAGE = (
     "The server restarted before this file was transcribed, so the upload was lost. Please upload it again."
 )
@@ -96,9 +102,13 @@ class JobRunner:
                     task=job.task.value,
                     on_progress=report,
                 )
-            except Exception as exc:  # noqa: BLE001 - surface any decoder/model failure to the user
+            except av.error.FFmpegError:
+                logger.exception("Transcription %s: unreadable audio", job.slug)
+                transcriptions.mark_failed(session, job, UNREADABLE_MESSAGE)
+                return
+            except Exception:  # noqa: BLE001 - never leave a job stuck; details go to the logs only
                 logger.exception("Transcription %s failed", job.slug)
-                transcriptions.mark_failed(session, job, f"Could not transcribe this file: {exc}")
+                transcriptions.mark_failed(session, job, GENERIC_FAILURE_MESSAGE)
                 return
 
             transcriptions.mark_done(

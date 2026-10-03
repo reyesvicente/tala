@@ -1,9 +1,12 @@
 """Thin wrapper around faster-whisper (OpenAI Whisper weights, CTranslate2 runtime)."""
 
+import math
+import os
 import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from faster_whisper import BatchedInferencePipeline, WhisperModel
 
@@ -22,6 +25,21 @@ class TranscriptResult:
     model_name: str = ""
 
 
+def available_cpus() -> int:
+    """CPUs this container may actually use.
+
+    os.cpu_count() reports the host's cores, so on a 1-CPU Render instance CTranslate2 would
+    start one thread per host core and they'd all fight over a single CPU.
+    """
+    try:
+        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().split()
+        if quota != "max":
+            return max(1, math.floor(int(quota) / int(period)))
+    except (OSError, ValueError):
+        pass
+    return os.cpu_count() or 1
+
+
 _pipeline: BatchedInferencePipeline | None = None
 _model_lock = threading.Lock()
 
@@ -36,7 +54,7 @@ def get_pipeline() -> BatchedInferencePipeline:
                 settings.whisper_model,
                 device=settings.whisper_device,
                 compute_type=settings.whisper_compute_type,
-                cpu_threads=settings.whisper_cpu_threads,
+                cpu_threads=settings.whisper_cpu_threads or available_cpus(),
                 download_root=str(settings.whisper_model_dir),
             )
             _pipeline = BatchedInferencePipeline(model)
