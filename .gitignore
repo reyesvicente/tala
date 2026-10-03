@@ -1,0 +1,9 @@
+.envs/.local/.api
+.envs/.local/.postgres
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+node_modules/
+frontend/dist/
+.DS_Store

@@ -1,0 +1,26 @@
+# Whisper supports ~100 languages; these are the ones offered in the picker.
+# Anything else still works through auto-detect.
+LANGUAGES: dict[str, str] = {
+    "en": "English",
+    "tl": "Tagalog / Filipino",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "nl": "Dutch",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese",
+    "id": "Indonesian",
+    "ms": "Malay",
+    "vi": "Vietnamese",
+    "th": "Thai",
+    "hi": "Hindi",
+    "ar": "Arabic",
+    "ru": "Russian",
+    "uk": "Ukrainian",
+    "pl": "Polish",
+    "tr": "Turkish",
+    "sv": "Swedish",
+}

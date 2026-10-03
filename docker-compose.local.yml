@@ -1,0 +1,36 @@
+volumes:
+  tala_local_postgres_data: {}
+  tala_local_models: {}
+  tala_local_uploads: {}
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./compose/local/api/Dockerfile
+    image: tala_local_api
+    container_name: tala_local_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app:z
+      - tala_local_models:/models
+      - tala_local_uploads:/data/uploads
+    env_file:
+      - ./.envs/.local/.api
+    ports:
+      - "8000:8000"
+
+  postgres:
+    image: postgres:17
+    container_name: tala_local_postgres
+    volumes:
+      - tala_local_postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./.envs/.local/.postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20

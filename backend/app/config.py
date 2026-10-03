@@ -1,0 +1,35 @@
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=None, extra="ignore")
+
+    database_url: str = "postgresql+psycopg://tala:tala@postgres:5432/tala"
+
+    # Whisper (open-weight, runs locally via CTranslate2)
+    whisper_model: str = "base"
+    whisper_device: str = "cpu"
+    whisper_compute_type: str = "int8"
+    whisper_cpu_threads: int = 0  # 0 = let CTranslate2 decide
+    whisper_model_dir: Path = Path("/models")
+    # Batched decoding splits audio on speech (VAD) and decodes chunks in parallel:
+    # ~6x faster than sequential on CPU. Greedy (beam 1) is as accurate here and a bit faster.
+    whisper_batch_size: int = 8
+    whisper_beam_size: int = 1
+
+    upload_dir: Path = Path("/data/uploads")
+    max_upload_mb: int = 100
+    # Transcripts self-destruct after this many hours. Audio is deleted right after transcription.
+    retention_hours: int = 72
+
+    # Optional: absolute path to a built frontend (dist/) to serve from the same origin.
+    frontend_dist: Path | None = None
+    cors_origins: list[str] = []
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

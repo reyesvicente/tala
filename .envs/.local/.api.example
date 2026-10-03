@@ -1,0 +1,8 @@
+DATABASE_URL=postgresql+psycopg://tala:tala@postgres:5432/tala
+# tiny | base | small | medium | large-v3 | distil-large-v3 — bigger = better + slower
+WHISPER_MODEL=base
+WHISPER_COMPUTE_TYPE=int8
+MAX_UPLOAD_MB=100
+RETENTION_HOURS=72
+WHISPER_BATCH_SIZE=8
+WHISPER_BEAM_SIZE=1
